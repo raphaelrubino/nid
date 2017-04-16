@@ -39,7 +39,7 @@ if __name__ == '__main__':
 	validation_size = 0.25
 
 	print( "Data loaded" )
-	ft = My_fast_text( src_sentences, src_max_features, src_max_features, src_max_length, trg_context, trg_target, trg_max_features, trg_max_length, batch, validation_size )
+	nid = BilingualNNID( src_sentences, src_max_features, src_max_length, trg_context, trg_target, trg_max_features, trg_max_length, batch, validation_size )
 	print( "Data prepared" )
 	print( "Training" )
-	ft.train( src_embedding, trg_embedding, dropout, epoch, out_model )
+	nid.train( src_embedding, trg_embedding, dropout, epoch, out_model )

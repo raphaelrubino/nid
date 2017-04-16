@@ -8,7 +8,8 @@ np.random.seed(1337)
 import theano
 
 from keras.models import Model
-from keras.layers import Input, Embedding, Dropout, Dense, GlobalAveragePooling1D
+from keras.layers import Input, Embedding, Dropout, Dense, GlobalAveragePooling1D, Concatenate
+from keras.preprocessing import sequence
 from keras.utils import np_utils
 
 from sklearn.utils import shuffle
@@ -27,7 +28,7 @@ class BilingualNNID():
 		self.trg_target = trg_target
 		self.batch = batch_size
 		self.valid_size = valid_size
-		trg_nb_instances = len( trg_self.context )
+		trg_nb_instances = len( self.trg_context )
 		print( "Instances: {0}".format( trg_nb_instances ) )
 		self.valid_size = np.int( valid_size * trg_nb_instances )
 		self.train_size = np.int( trg_nb_instances - self.valid_size )
@@ -65,17 +66,17 @@ class BilingualNNID():
 		self.model.save_weights( filename + '.weights.h5', overwrite = True )
 
 	def get_default_model( self, src_embedding, trg_embedding, dropout ):
-		input_src_sentence = Input( shape = ( self.src_max_length ), dtype = 'int32', name = 'input_src_sentence' )
-		emb_src_sentence = Embedding( input_dim = self.src_max_features, outout_dim = src_embedding )( input_src_sentence )
+		input_src_sentence = Input( shape = ( self.src_max_length, ), dtype = 'int32', name = 'input_src_sentence' )
+		emb_src_sentence = Embedding( input_dim = self.src_max_features, output_dim = src_embedding, input_length = self.src_max_length )( input_src_sentence )
 		drop_src_sentence = Dropout( dropout )( emb_src_sentence )
 		pool_src_sentence = GlobalAveragePooling1D()
 
 		input_trg_context = Input( shape = ( self.trg_max_length, ), dtype = 'int32', name = 'input_trg_context' )
-		emb_trg_context = Embedding( input_dim = self.trg_max_features, output_dim = trg_embedding )( input_trg_context )
+		emb_trg_context = Embedding( input_dim = self.trg_max_features, output_dim = trg_embedding, input_length = self.trg_max_length )( input_trg_context )
 		drop_trg_context = Dropout( dropout )( emb_trg_context )
 		pool_trg_context = GlobalAveragePooling1D()( drop_trg_context )
 
-		concat = keras.layers.concatenate( [ pool_src_sentence, pool_trg_context ] )
+		concat = Concatenate()( [ pool_src_sentence, pool_trg_context ] )
 		output = Dense( self.trg_max_features, activation = 'softmax', name = 'output' )( concat )
 		
 		model = Model( inputs = [ input_src_sentence, input_trg_context ], outputs = output )
@@ -100,8 +101,9 @@ class BilingualNNID():
 			train_loss = 0.0
 			train_acc = 0.0
 			for j in range( nb_batch_train ):
+				print( batch_src_corpus_train[ j ].shape )
 				loss, metrics = model.train_on_batch( \
-					{ 'input_src_sentence': batch_src_corpus_train[ j ], \
+					{ 'input_src_sentence': sequence.pad_sequences( batch_src_corpus_train[ j ], maxlen = self.src_max_length, dtype = 'int32', padding = 'post', value = 2 ) , \
 					'input_trg_context': batch_trg_context_train[ j ] }, \
 					{ 'output': np_utils.to_categorical( batch_trg_target_train[ j ], num_classes = self.trg_max_features ) } )
 				train_loss += loss
@@ -112,7 +114,7 @@ class BilingualNNID():
 			avg_acc = 0
 			for k in range( nb_batch_valid ):
 				valid_loss, valid_metrics = model.test_on_batch( \
-					{ 'input_src_sentence': batch_src_corpus_valid[ k ], \
+					{ 'input_src_sentence': sequence.pad_sequences( batch_src_corpus_valid[ k ], maxlen = self.src_max_length, dtype = 'int32', padding = 'post', value = 2 ), \
 					'input_trg_context': batch_trg_context_valid[ k ] }, \
 					{ 'output': np_utils.to_categorical( batch_trg_target_valid[ k ], num_classes = self.trg_max_features ) } )
 				avg_loss += valid_loss

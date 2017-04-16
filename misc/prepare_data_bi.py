@@ -17,6 +17,7 @@ def init_vocab():
 		"<s>": 1,
 		"</s>": 2,
 	}
+	return vocab
 
 def extract_vocabulary_and_sentences( in_corpus ):
 	corpus = []
@@ -30,8 +31,9 @@ def extract_vocabulary_and_sentences( in_corpus ):
 				if token not in vocab: 
 					vocab[ token ] = count
 					count += 1
-				numberized_tokens.append( vocab[ token ] )
-			corpus.append( numberized_tokens )
+				numberized_tokens.append( str( vocab[ token ] ) )
+			corpus.append( " ".join( numberized_tokens ) )
+	vocab = [ "{0} {1}".format( item, vocab[ item ] ) for item in vocab ]
 	return vocab, corpus
 
 def extract_vocabulary_and_ngrams( in_corpus, n_order ):
