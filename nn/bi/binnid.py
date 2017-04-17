@@ -8,7 +8,7 @@ np.random.seed(1337)
 import theano
 
 from keras.models import Model
-from keras.layers import Input, Embedding, Dropout, Dense, GlobalAveragePooling1D, Concatenate
+from keras.layers import Input, Embedding, Dropout, Dense, GlobalAveragePooling1D, concatenate
 from keras.preprocessing import sequence
 from keras.utils import np_utils
 
@@ -69,14 +69,16 @@ class BilingualNNID():
 		input_src_sentence = Input( shape = ( self.src_max_length, ), dtype = 'int32', name = 'input_src_sentence' )
 		emb_src_sentence = Embedding( input_dim = self.src_max_features, output_dim = src_embedding, input_length = self.src_max_length )( input_src_sentence )
 		drop_src_sentence = Dropout( dropout )( emb_src_sentence )
-		pool_src_sentence = GlobalAveragePooling1D()
+		pool_src_sentence = GlobalAveragePooling1D()( drop_src_sentence )
+		dense_src = Dense( src_embedding )( pool_src_sentence )
 
 		input_trg_context = Input( shape = ( self.trg_max_length, ), dtype = 'int32', name = 'input_trg_context' )
 		emb_trg_context = Embedding( input_dim = self.trg_max_features, output_dim = trg_embedding, input_length = self.trg_max_length )( input_trg_context )
 		drop_trg_context = Dropout( dropout )( emb_trg_context )
 		pool_trg_context = GlobalAveragePooling1D()( drop_trg_context )
+		dense_trg = Dense( trg_embedding )( pool_trg_context )
 
-		concat = Concatenate()( [ pool_src_sentence, pool_trg_context ] )
+		concat = concatenate( [ dense_src, dense_trg ] )
 		output = Dense( self.trg_max_features, activation = 'softmax', name = 'output' )( concat )
 		
 		model = Model( inputs = [ input_src_sentence, input_trg_context ], outputs = output )
@@ -101,7 +103,6 @@ class BilingualNNID():
 			train_loss = 0.0
 			train_acc = 0.0
 			for j in range( nb_batch_train ):
-				print( batch_src_corpus_train[ j ].shape )
 				loss, metrics = model.train_on_batch( \
 					{ 'input_src_sentence': sequence.pad_sequences( batch_src_corpus_train[ j ], maxlen = self.src_max_length, dtype = 'int32', padding = 'post', value = 2 ) , \
 					'input_trg_context': batch_trg_context_train[ j ] }, \
