@@ -105,8 +105,8 @@ class Neural_information_density():
 			if best_acc < avg_acc:
 				best_acc = avg_acc
 				self.model = model
-				self.save_weights( "{0}.best_acc".format( out_model ) )
-				self.save_architecture( "{0}.best_acc".format( out_model ) )
+				self.save_weights( "{0}.acc_{1}".format( out_model, np.round( best_acc, 3 ) ) )
+				self.save_architecture( "{0}.acc_{1}".format( out_model, np.round( best_acc, 3 ) ) )
 			#predict = self.model.predict_on_batch( np.asarray( [ [ 24, 100, 71, 30, 102, 103, 104, 34 ] ] ) )
 			#predict = np.where( predict == np.max( predict[ 0 ] ) )
 			#print( predict )

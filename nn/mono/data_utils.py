@@ -15,14 +15,13 @@ def load_context( infile ):
 	context = np.asarray( context )
 	return context
 
-def load_target( infile ): #, max_features ):
+def load_target( infile ):
 	target = []
 	with open( infile, mode = "r" ) as f:
 		for line in f:
 			tmp_target = np.int( line )
 			target.append( tmp_target )
 	target = np.asarray( target )
-	#target = np_utils.to_categorical( target, num_classes = max_features )
 	return target
 
 def load_vocab( infile ):
