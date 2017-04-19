@@ -8,7 +8,7 @@ np.random.seed(1337)
 import theano
 
 from keras.models import Sequential
-from keras.layers import Embedding, Dropout, Dense, GlobalAveragePooling1D, LSTM
+from keras.layers import Embedding, Dropout, Dense, GlobalAveragePooling1D, LSTM, Flatten
 from keras.callbacks import ModelCheckpoint, EarlyStopping
 from keras.utils import np_utils
 
@@ -61,8 +61,9 @@ class My_fast_text():
 	def get_default_model( self, embedding, dropout ):
 		model = Sequential()
 		model.add( Embedding( self.max_features, embedding, input_length = self.max_length ) )
+		model.add( Flatten() )
 		model.add( Dropout( dropout ) )
-		model.add( GlobalAveragePooling1D() ) 
+		#model.add( GlobalAveragePooling1D() ) 
 		#model.add( LSTM( int( embedding / 2 ), activation = "sigmoid" ) )
 		#model.add( Dropout( dropout ) )
 		model.add( Dense( self.max_features, activation = 'softmax' ) )

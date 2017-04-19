@@ -8,7 +8,7 @@ np.random.seed(1337)
 import theano
 
 from keras.models import Model
-from keras.layers import Input, Embedding, Dropout, Dense, GlobalAveragePooling1D, concatenate
+from keras.layers import Input, Embedding, Dropout, Dense, GlobalAveragePooling1D, concatenate, Flatten
 from keras.preprocessing import sequence
 from keras.utils import np_utils
 
@@ -70,15 +70,17 @@ class BilingualNNID():
 		emb_src_sentence = Embedding( input_dim = self.src_max_features, output_dim = src_embedding, input_length = self.src_max_length )( input_src_sentence )
 		drop_src_sentence = Dropout( dropout )( emb_src_sentence )
 		pool_src_sentence = GlobalAveragePooling1D()( drop_src_sentence )
-		dense_src = Dense( src_embedding )( pool_src_sentence )
+		#dense_src = Dense( src_embedding )( pool_src_sentence )
 
 		input_trg_context = Input( shape = ( self.trg_max_length, ), dtype = 'int32', name = 'input_trg_context' )
 		emb_trg_context = Embedding( input_dim = self.trg_max_features, output_dim = trg_embedding, input_length = self.trg_max_length )( input_trg_context )
-		drop_trg_context = Dropout( dropout )( emb_trg_context )
-		pool_trg_context = GlobalAveragePooling1D()( drop_trg_context )
-		dense_trg = Dense( trg_embedding )( pool_trg_context )
+		flat_trg_context = Flatten()( emb_trg_context )
+		drop_trg_context = Dropout( dropout )( flat_trg_context )
+		#pool_trg_context = GlobalAveragePooling1D()( drop_trg_context )
+		#dense_trg = Dense( trg_embedding )( pool_trg_context )
 
-		concat = concatenate( [ dense_src, dense_trg ] )
+		#concat = concatenate( [ dense_src, dense_trg ] )
+		concat = concatenate( [ pool_src_sentence, drop_trg_context ] )
 		output = Dense( self.trg_max_features, activation = 'softmax', name = 'output' )( concat )
 		
 		model = Model( inputs = [ input_src_sentence, input_trg_context ], outputs = output )
