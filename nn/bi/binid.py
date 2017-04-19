@@ -29,7 +29,7 @@ class Bilingual_neural_information_density():
 		self.batch = batch_size
 		self.valid_size = valid_size
 		trg_nb_instances = len( self.trg_context )
-		print( "Instances: {0}".format( trg_nb_instances ) )
+		print( "Instances: {0}".format( trg_nb_instances ), flush = True )
 		self.valid_size = np.int( valid_size * trg_nb_instances )
 		self.train_size = np.int( trg_nb_instances - self.valid_size )
 		self.trg_max_features = trg_max_features
@@ -97,7 +97,7 @@ class Bilingual_neural_information_density():
 		batch_trg_target_valid = self.batch_trg_target_valid
 		for i in range( nb_epochs ):
 			time_start = time.time()
-			print( "Epoch {0}".format( i + 1 ) )
+			print( "Epoch {0}".format( i + 1 ), flush = True )
 			train_loss = 0.0
 			train_acc = 0.0
 			for j in range( nb_batch_train ):
@@ -126,6 +126,6 @@ class Bilingual_neural_information_density():
 				self.save_weights( "{0}.best_acc".format( out_model ) )
 				self.save_architecture( "{0}.best_acc".format( out_model ) )
 
-			print( "train loss {0} -- acc: {1} ---- valid loss: {2} -- acc: {3}".format( train_loss, train_acc, avg_loss, avg_acc ) )
+			print( "train loss {0} -- acc: {1} ---- valid loss: {2} -- acc: {3}".format( train_loss, train_acc, avg_loss, avg_acc ), flush = True )
 			time_elapsed = time.time() - time_start
-			print( "{0} seconds".format( time_elapsed ) )
+			print( "{0} seconds".format( time_elapsed ), flush = True )
