@@ -7,7 +7,7 @@ import numpy as np
 np.random.seed( 1337 )
 
 import data_utils
-from binnid import BilingualNNID
+from binid import Bilingual_neural_information_density
 
 import sys
 
@@ -39,7 +39,7 @@ if __name__ == '__main__':
 	validation_size = 0.25
 
 	print( "Data loaded" )
-	nid = BilingualNNID( src_sentences, src_max_features, src_max_length, trg_context, trg_target, trg_max_features, trg_max_length, batch, validation_size )
+	nid = Bilingual_neural_information_density( src_sentences, src_max_features, src_max_length, trg_context, trg_target, trg_max_features, trg_max_length, batch, validation_size )
 	print( "Data prepared" )
 	print( "Training" )
 	nid.train( src_embedding, trg_embedding, dropout, epoch, out_model )

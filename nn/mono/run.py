@@ -7,7 +7,7 @@ import numpy as np
 np.random.seed( 1337 )
 
 import data_utils
-from fasttext import My_fast_text
+from nid import Neural_information_density
 
 import sys
 
@@ -35,7 +35,7 @@ if __name__ == '__main__':
 	validation_size = 0.25
 
 	print( "Data loaded" )
-	ft = My_fast_text( context, target, max_features, max_length, batch, validation_size )
+	nid = Neural_information_density( context, target, max_features, max_length, batch, validation_size )
 	print( "Data prepared" )
 	print( "Training" )
-	ft.train( embedding, dropout, epoch, out_model )
+	nid.train( embedding, dropout, epoch, out_model )

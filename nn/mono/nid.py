@@ -18,7 +18,7 @@ import time
 import sys
 
 
-class My_fast_text():
+class Neural_information_density():
 
 	def __init__( self, context, target, max_features, max_length, batch_size, valid_size ):
 		self.context = context
