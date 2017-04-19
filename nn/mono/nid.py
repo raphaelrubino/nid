@@ -26,7 +26,7 @@ class Neural_information_density():
 		self.batch = batch_size
 		self.valid_size = valid_size
 		nb_instances = len( self.context )
-		print( "Instances: {0}".format( nb_instances ) )
+		print( "Instances: {0}".format( nb_instances ), flush = True )
 		self.valid_size = np.int( valid_size * nb_instances )
 		self.train_size = np.int( nb_instances - self.valid_size )
 		self.max_features = max_features
@@ -70,6 +70,7 @@ class Neural_information_density():
 		return model
 
 	def train( self, embedding_size, dropout, nb_epochs, out_model ):
+		print( "Building model", flush = True )
 		model = self.get_default_model( embedding_size, dropout )
 		model.compile( optimizer = 'RMSprop', loss = 'categorical_crossentropy', metrics = [ 'accuracy' ] )
 		best_acc = np.float( 0.0 )
@@ -82,7 +83,7 @@ class Neural_information_density():
 		batch_target_valid = self.batch_target_valid
 		for i in range( nb_epochs ):
 			time_start = time.time()
-			print( "Epoch {0}".format( i + 1 ) )
+			print( "Epoch {0}".format( i + 1 ), flush = True )
 			train_loss = 0.0
 			train_acc = 0.0
 			for j in range( nb_batch_train ):
@@ -113,9 +114,9 @@ class Neural_information_density():
 			#predict = np.where( predict == np.max( predict[ 0 ] ) )
 			#print( predict )
 
-			print( "train loss {0} -- acc: {1} ---- valid loss: {2} -- acc: {3}".format( train_loss, train_acc, avg_loss, avg_acc ) )
+			print( "train loss {0} -- acc: {1} ---- valid loss: {2} -- acc: {3}".format( train_loss, train_acc, avg_loss, avg_acc ), flush = True )
 			time_elapsed = time.time() - time_start
-			print( "{0} seconds".format( time_elapsed ) )
+			print( "{0} seconds".format( time_elapsed ), flush = True )
 #		checkpointer = ModelCheckpoint( filepath = out_model + ".hdf5", monitor = "val_acc", verbose = 0, save_best_only = True, mode = "max" )
 #		earlystopping = EarlyStopping( monitor = 'val_acc', patience = 20, verbose = 0, mode = "max" )
 #		history = model.fit( self.context, self.target,
