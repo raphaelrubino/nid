@@ -5,6 +5,17 @@ import sys
 from nltk.util import ngrams
 import numpy as np
 
+def process_line( line, order ):
+	line = line.strip()
+	line = "<s> " * ( order - 1 ) + line + " </s>" * ( order - 1 )
+	return line.split( " " )
+
+def build_context( ngram, order ):	
+	left_context = " ".join( str( item ) for item in ngram[ 0 : order - 1 ] )
+	right_context = " ".join( str( item ) for item in ngram[ order : len( ngram ) ] )
+	target = str( ngram[ order - 1 ] )
+	return left_context, right_context, target
+
 def extract_vocabulary_and_ngrams( in_corpus, n_order ):
 	corpus_contexts = []
 	corpus_targets = []
@@ -15,9 +26,7 @@ def extract_vocabulary_and_ngrams( in_corpus, n_order ):
 	count = len( vocab )
 	with open( in_corpus, mode = "r" ) as corpus:
 		for line in corpus:
-			line = line.strip()
-			line = "<s> " * ( n_order - 1 ) + line + " </s>" * ( n_order - 1 )
-			tokens = line.split( " " )
+			tokens = process_line( line, n_order )
 			numberized_tokens = []
 			for token in tokens:
 				if token not in vocab:
@@ -26,10 +35,8 @@ def extract_vocabulary_and_ngrams( in_corpus, n_order ):
 				numberized_tokens.append( vocab[ token ] )
 			line_ngrams = ngrams( numberized_tokens, n_order * 2 - 1 )
 			for ngram in line_ngrams:
-				left_context = " ".join( str( item ) for item in ngram[ 0 : n_order - 1 ] )
-				right_context = " ".join( str( item ) for item in ngram[ n_order : len( ngram ) ] )
-				target = str( ngram[ n_order - 1 ] )
-				corpus_contexts.append( left_context + " " + right_context )
+				left, right, target = build_context( ngram, order )
+				corpus_contexts.append( left + " " + right )
 				corpus_targets.append( target )
 	vocab = [ "{0} {1}".format( item, vocab[ item ] ) for item in vocab ]
 	return vocab, corpus_contexts, corpus_targets

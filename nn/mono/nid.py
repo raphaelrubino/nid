@@ -5,11 +5,8 @@ from __future__ import absolute_import
 import numpy as np
 np.random.seed(1337)
 
-import theano
-
 from keras.models import Sequential
-from keras.layers import Embedding, Dropout, Dense, GlobalAveragePooling1D, LSTM, Flatten
-from keras.callbacks import ModelCheckpoint, EarlyStopping
+from keras.layers import Embedding, Dropout, Dense, Flatten
 from keras.utils import np_utils
 
 from sklearn.utils import shuffle
@@ -63,68 +60,49 @@ class Neural_information_density():
 		model.add( Embedding( self.max_features, embedding, input_length = self.max_length ) )
 		model.add( Flatten() )
 		model.add( Dropout( dropout ) )
-		#model.add( GlobalAveragePooling1D() ) 
-		#model.add( LSTM( int( embedding / 2 ), activation = "sigmoid" ) )
-		#model.add( Dropout( dropout ) )
 		model.add( Dense( self.max_features, activation = 'softmax' ) )
 		return model
 
+	def train_model( self ):
+		train_loss = 0.0
+		train_acc = 0.0
+		for j in range( self.batch_target_train.shape[ 0 ] ):
+			loss, metrics = self.model.train_on_batch( self.batch_context_train[ j ], \
+				np_utils.to_categorical( self.batch_target_train[ j ], num_classes = self.max_features ) )
+			train_loss += loss
+			train_acc += metrics
+		train_loss /= j
+		train_acc /= j
+		return train_loss, train_acc
+
+	def valid_model( self ):
+		valid_loss = 0.0
+		valid_acc = 0.0
+		for k in range( self.batch_target_valid.shape[ 0 ] ):
+			loss, metrics = self.model.test_on_batch( self.batch_context_valid[ k ], \
+				np_utils.to_categorical( self.batch_target_valid[ k ], num_classes = self.max_features ) )
+			valid_loss += loss
+			valid_acc += metrics
+		valid_loss /= k
+		valid_acc /= k
+		return valid_loss, valid_acc
+
 	def train( self, embedding_size, dropout, nb_epochs, out_model ):
 		print( "Building model", flush = True )
-		model = self.get_default_model( embedding_size, dropout )
-		model.compile( optimizer = 'RMSprop', loss = 'categorical_crossentropy', metrics = [ 'accuracy' ] )
+		self.model = self.get_default_model( embedding_size, dropout )
+		self.model.compile( optimizer = 'RMSprop', loss = 'categorical_crossentropy', metrics = [ 'accuracy' ] )
 		best_acc = np.float( 0.0 )
 		best_loss = np.float( 999.9 )
-		nb_batch_train = self.batch_target_train.shape[ 0 ]
-		nb_batch_valid = self.batch_target_valid.shape[ 0 ]
-		batch_context_train = self.batch_context_train
-		batch_target_train = self.batch_target_train
-		batch_context_valid = self.batch_context_valid
-		batch_target_valid = self.batch_target_valid
 		for i in range( nb_epochs ):
 			time_start = time.time()
 			print( "Epoch {0}".format( i + 1 ), flush = True )
-			train_loss = 0.0
-			train_acc = 0.0
-			for j in range( nb_batch_train ):
-				loss, metrics = model.train_on_batch( batch_context_train[ j ], \
-					np_utils.to_categorical( batch_target_train[ j ], num_classes = self.max_features ) )
-				train_loss += loss
-				train_acc += metrics
-			train_loss /= j
-			train_acc /= j
-			avg_loss = 0
-			avg_acc = 0
-			for k in range( nb_batch_valid ):
-				valid_loss, valid_metrics = model.test_on_batch( batch_context_valid[ k ], \
-					np_utils.to_categorical( batch_target_valid[ k ], num_classes = self.max_features ) )
-				avg_loss += valid_loss
-				avg_acc += valid_metrics
-			avg_loss /= nb_batch_valid
-			avg_acc /= nb_batch_valid
-			if best_acc < avg_acc:
-				best_acc = avg_acc
-				self.model = model
+			train_loss, train_acc = train_model()
+			valid_loss, valid_acc = valid_model()
+			if best_acc < valid_acc:
+				best_acc = valid_acc
 				self.save_weights( "{0}.acc_{1}".format( out_model, np.round( best_acc, 3 ) ) )
 				self.save_architecture( "{0}.acc_{1}".format( out_model, np.round( best_acc, 3 ) ) )
-			#predict = self.model.predict_on_batch( np.asarray( [ [ 24, 100, 71, 30, 102, 103, 104, 34 ] ] ) )
-			#predict = np.where( predict == np.max( predict[ 0 ] ) )
-			#print( predict )
-			#predict = self.model.predict_on_batch( np.asarray( [ [ 107, 9097, 2030, 5513, 244, 24, 5164, 6471 ] ] ) )
-			#predict = np.where( predict == np.max( predict[ 0 ] ) )
-			#print( predict )
 
-			print( "train loss {0} -- acc: {1} ---- valid loss: {2} -- acc: {3}".format( train_loss, train_acc, avg_loss, avg_acc ), flush = True )
+			print( "train loss {0} -- acc: {1} ---- valid loss: {2} -- acc: {3}".format( train_loss, train_acc, valid_loss, valid_acc ), flush = True )
 			time_elapsed = time.time() - time_start
 			print( "{0} seconds".format( time_elapsed ), flush = True )
-#		checkpointer = ModelCheckpoint( filepath = out_model + ".hdf5", monitor = "val_acc", verbose = 0, save_best_only = True, mode = "max" )
-#		earlystopping = EarlyStopping( monitor = 'val_acc', patience = 20, verbose = 0, mode = "max" )
-#		history = model.fit( self.context, self.target,
-#			batch_size = batch_size,
-#			epochs = nb_epochs,
-#			shuffle = True,
-#			validation_split = 0.25,
-#			callbacks = [ checkpointer, earlystopping ],
-#			verbose = 1
-#		)
-#		model.load_weights( out_model + ".hdf5" )

@@ -65,66 +65,68 @@ class Neural_information_density_sentence():
 		self.model.save_weights( filename + '.weights.h5', overwrite = True )
 
 	def get_default_model( self, sentence_embedding, trg_embedding, dropout ):
-		input_sentence_sentence = Input( shape = ( self.sentence_max_length, ), dtype = 'int32', name = 'input_sentence_sentence' )
-		emb_sentence_sentence = Embedding( input_dim = self.trg_max_features, output_dim = sentence_embedding, input_length = self.sentence_max_length )( input_sentence_sentence )
-		pool_sentence_sentence = GlobalAveragePooling1D()( emb_sentence_sentence )
-		drop_sentence_sentence = Dropout( dropout )( pool_sentence_sentence )
+		input_sentence = Input( shape = ( self.sentence_max_length, ), dtype = 'int32', name = 'input_sentence' )
+		emb_sentence = Embedding( input_dim = self.trg_max_features, output_dim = sentence_embedding, input_length = self.sentence_max_length )( input_sentence )
+		pool_sentence = GlobalAveragePooling1D()( emb_sentence )
+		drop_sentence = Dropout( dropout )( pool_sentence )
 
 		input_trg_context = Input( shape = ( self.context_max_length, ), dtype = 'int32', name = 'input_trg_context' )
 		emb_trg_context = Embedding( input_dim = self.trg_max_features, output_dim = trg_embedding, input_length = self.context_max_length )( input_trg_context )
 		flat_trg_context = Flatten()( emb_trg_context )
 		drop_trg_context = Dropout( dropout )( flat_trg_context )
 
-		concat = concatenate( [ drop_sentence_sentence, drop_trg_context ] )
+		concat = concatenate( [ drop_sentence, drop_trg_context ] )
 		output = Dense( self.trg_max_features, activation = 'softmax', name = 'output' )( concat )
 		
-		model = Model( inputs = [ input_sentence_sentence, input_trg_context ], outputs = output )
+		model = Model( inputs = [ input_sentence, input_trg_context ], outputs = output )
 		return model
 
+	def train_model( self ):
+		avgloss = 0.0
+		avgacc = 0.0
+		for j in range( self.batch_trg_target_train.shape[ 0 ] ):
+			loss, metrics = self.model.train_on_batch( \
+				{ 'input_sentence': sequence.pad_sequences( self.batch_sentence_corpus_train[ j ], \
+					maxlen = self.sentence_max_length, dtype = 'int32', padding = 'post', value = 2 ) , \
+				'input_trg_context': self.batch_trg_context_train[ j ] }, \
+				{ 'output': np_utils.to_categorical( self.batch_trg_target_train[ j ], \
+					num_classes = self.trg_max_features ) } )
+			avgloss += loss
+			avgacc += metrics
+		avgloss /= j
+		avgacc /= j
+		return avgloss, avgacc
+
+	def valid_model( self ):
+		avgloss = 0.0
+		avgacc = 0.0
+		for k in range( self.batch_target_valid.shape[ 0 ] ):
+			loss, metrics = self.model.test_on_batch( \
+				{ 'input_sentence': sequence.pad_sequences( self.batch_sentence_corpus_valid[ k ], \
+					maxlen = self.sentence_max_length, dtype = 'int32', padding = 'post', value = 2 ), \
+				'input_trg_context': self.batch_trg_context_valid[ k ] }, \
+				{ 'output': np_utils.to_categorical( self.batch_trg_target_valid[ k ], \
+					num_classes = self.trg_max_features ) } )
+			avgloss += loss
+			avgacc += metrics
+		avgloss /= k
+		avgacc /= k
+		return avgloss, avgacc
+
 	def train( self, sentence_embedding_size, trg_embedding_size, dropout, nb_epochs, out_model ):
-		model = self.get_default_model( sentence_embedding_size, trg_embedding_size, dropout )
-		model.compile( optimizer = 'RMSprop', loss = 'categorical_crossentropy', metrics = [ 'accuracy' ] )
+		self.model = self.get_default_model( sentence_embedding_size, trg_embedding_size, dropout )
+		self.model.compile( optimizer = 'RMSprop', loss = 'categorical_crossentropy', metrics = [ 'accuracy' ] )
 		best_acc = np.float( 0.0 )
 		best_loss = np.float( 999.9 )
-		nb_batch_train = self.batch_trg_target_train.shape[ 0 ]
-		nb_batch_valid = self.batch_trg_target_valid.shape[ 0 ]
-		batch_sentence_corpus_train = self.batch_sentence_corpus_train
-		batch_sentence_corpus_valid = self.batch_sentence_corpus_valid
-		batch_trg_context_train = self.batch_trg_context_train
-		batch_trg_target_train = self.batch_trg_target_train
-		batch_trg_context_valid = self.batch_trg_context_valid
-		batch_trg_target_valid = self.batch_trg_target_valid
 		for i in range( nb_epochs ):
 			time_start = time.time()
 			print( "Epoch {0}".format( i + 1 ), flush = True )
-			train_loss = 0.0
-			train_acc = 0.0
-			for j in range( nb_batch_train ):
-				loss, metrics = model.train_on_batch( \
-					{ 'input_sentence_sentence': sequence.pad_sequences( batch_sentence_corpus_train[ j ], maxlen = self.sentence_max_length, dtype = 'int32', padding = 'post', value = 2 ) , \
-					'input_trg_context': batch_trg_context_train[ j ] }, \
-					{ 'output': np_utils.to_categorical( batch_trg_target_train[ j ], num_classes = self.trg_max_features ) } )
-				train_loss += loss
-				train_acc += metrics
-			train_loss /= j
-			train_acc /= j
-			avg_loss = 0
-			avg_acc = 0
-			for k in range( nb_batch_valid ):
-				valid_loss, valid_metrics = model.test_on_batch( \
-					{ 'input_sentence_sentence': sequence.pad_sequences( batch_sentence_corpus_valid[ k ], maxlen = self.sentence_max_length, dtype = 'int32', padding = 'post', value = 2 ), \
-					'input_trg_context': batch_trg_context_valid[ k ] }, \
-					{ 'output': np_utils.to_categorical( batch_trg_target_valid[ k ], num_classes = self.trg_max_features ) } )
-				avg_loss += valid_loss
-				avg_acc += valid_metrics
-			avg_loss /= nb_batch_valid
-			avg_acc /= nb_batch_valid
-			if best_acc < avg_acc:
-				best_acc = avg_acc
-				self.model = model
-				self.save_weights( "{0}.best_acc".format( out_model ) )
-				self.save_architecture( "{0}.best_acc".format( out_model ) )
-
-			print( "train loss {0} -- acc: {1} ---- valid loss: {2} -- acc: {3}".format( train_loss, train_acc, avg_loss, avg_acc ), flush = True )
+			train_loss,	train_acc = train_model()
+			valid_loss, valid_acc = valid_model()
+			if best_acc < valid_acc:
+				best_acc = valid_acc
+				self.save_weights( "{0}.acc_{1}".format( out_model, np.round( best_acc, 3 ) ) )
+				self.save_architecture( "{0}.acc_{1}".format( out_model, np.round( best_acc, 3 ) ) )
+			print( "train loss {0} -- acc: {1} ---- valid loss: {2} -- acc: {3}".format( train_loss, train_acc, valid_loss, valid_acc ), flush = True )
 			time_elapsed = time.time() - time_start
 			print( "{0} seconds".format( time_elapsed ), flush = True )
